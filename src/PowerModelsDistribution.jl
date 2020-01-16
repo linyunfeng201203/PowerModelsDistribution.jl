@@ -14,6 +14,7 @@ module PowerModelsDistribution
         global _LOGGER = Memento.getlogger(PowerModels)
     end
 
+    include("core/base.jl")
     include("core/types.jl")
     include("core/data.jl")
     include("core/ref.jl")

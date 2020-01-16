@@ -22,7 +22,7 @@ function build_mc_opf(pm::_PMs.AbstractPowerModel)
     variable_mc_branch_flow(pm)
     variable_mc_transformer_flow(pm)
     variable_mc_generation(pm)
-    variable_mc_storage(pm)
+    #variable_mc_storage(pm)
 
     constraint_mc_model_voltage(pm)
 
@@ -34,12 +34,12 @@ function build_mc_opf(pm::_PMs.AbstractPowerModel)
         constraint_mc_power_balance(pm, i)
     end
 
-    for i in _PMs.ids(pm, :storage)
-        _PMs.constraint_storage_state(pm, i)
-        _PMs.constraint_storage_complementarity_nl(pm, i)
-        constraint_mc_storage_loss(pm, i)
-        constraint_mc_storage_thermal_limit(pm, i)
-    end
+    # for i in _PMs.ids(pm, :storage)
+    #     _PMs.constraint_storage_state(pm, i)
+    #     _PMs.constraint_storage_complementarity_nl(pm, i)
+    #     constraint_mc_storage_loss(pm, i)
+    #     constraint_mc_storage_thermal_limit(pm, i)
+    # end
 
     for i in _PMs.ids(pm, :branch)
         constraint_mc_ohms_yt_from(pm, i)
@@ -55,5 +55,5 @@ function build_mc_opf(pm::_PMs.AbstractPowerModel)
         constraint_mc_trans(pm, i)
     end
 
-    _PMs.objective_min_fuel_cost(pm)
+    _PMs.objective_mc_min_fuel_cost(pm)
 end

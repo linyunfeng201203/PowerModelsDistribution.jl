@@ -1,3 +1,30 @@
+""
+function _PMs._objective_min_fuel_cost_polynomial_linquad(pm::_PMs.AbstractPowerModel)
+    gen_cost = Dict()
+    for (n, nw_ref) in _PMs.nws(pm)
+        for (i,gen) in nw_ref[:gen]
+            pg = sum( _PMs.var(pm, n, :pg, i)[c] for c in _PMs.conductor_ids(pm, n) )
+
+            if length(gen["cost"]) == 1
+                gen_cost[(n,i)] = gen["cost"][1]
+            elseif length(gen["cost"]) == 2
+                gen_cost[(n,i)] = gen["cost"][1]*pg + gen["cost"][2]
+            elseif length(gen["cost"]) == 3
+                gen_cost[(n,i)] = gen["cost"][1]*pg^2 + gen["cost"][2]*pg + gen["cost"][3]
+            else
+                gen_cost[(n,i)] = 0.0
+            end
+        end
+    end
+
+    return JuMP.@objective(pm.model, Min,
+        sum(
+            sum( gen_cost[(n,i)] for (i,gen) in nw_ref[:gen] )
+        for (n, nw_ref) in _PMs.nws(pm))
+    )
+end
+
+
 "a quadratic penalty for bus power slack variables"
 function objective_min_bus_power_slack(pm::_PMs.AbstractPowerModel)
     return JuMP.@objective(pm.model, Min,

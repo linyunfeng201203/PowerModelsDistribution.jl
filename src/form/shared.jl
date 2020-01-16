@@ -90,7 +90,7 @@ end
 
 "Creates phase angle constraints at reference buses"
 function constraint_mc_theta_ref(pm::_PMs.AbstractPolarModels, n::Int, c::Int, d)
-    va = _PMs.var(pm, n, c, :va, d)
+    va = _PMs.var(pm, n, :va, d)[c]
     nconductors = length(_PMs.conductor_ids(pm))
 
     JuMP.@constraint(pm.model, va == _wrap_to_pi(2 * pi / nconductors * (1-c)))
@@ -210,6 +210,12 @@ end
 "By default, delegate back to PM; only certain formulations differ between PMD and PMs."
 function constraint_mc_voltage_angle_difference(pm::_PMs.AbstractPowerModel, n::Int, f_idx, angmin, angmax)
     for c in _PMs.conductor_ids(pm; nw=n)
-        _PMs.constraint_voltage_angle_difference(pm, n, c, f_idx, angmin[c], angmax[c])
+        i, f_bus, t_bus = f_idx
+
+        va_fr = _PMs.var(pm, n, :va, f_bus)[c]
+        va_to = _PMs.var(pm, n, :va, t_bus)[c]
+
+        JuMP.@constraint(pm.model, va_fr - va_to <= angmax[c])
+        JuMP.@constraint(pm.model, va_fr - va_to >= angmin[c])
     end
 end
