@@ -371,6 +371,7 @@ end
 function variable_mc_storage(pm::_PMs.AbstractPowerModel; kwargs...)
     variable_mc_storage_active(pm; kwargs...)
     variable_mc_storage_reactive(pm; kwargs...)
+    variable_mc_storage_power_control_imaginary(pm; kwargs...)
 
     _PMs.variable_storage_energy(pm; kwargs...)
     _PMs.variable_storage_charge(pm; kwargs...)
@@ -433,6 +434,47 @@ function variable_mc_storage_reactive(pm::_PMs.AbstractPowerModel; nw::Int=pm.cn
     report && InfrastructureModels.sol_component_value(pm, nw, :storage, :qs, _PMs.ids(pm, nw, :storage), qs)
 end
 
+"""
+a reactive power slack variable that enables the storage device to inject or
+consume reactive power at its connecting bus, subject to the injection limits
+of the device.
+"""
+function variable_mc_storage_power_control_imaginary(pm::_PMs.AbstractPowerModel; nw::Int=pm.cnw, bounded::Bool=true, report::Bool=true)
+    cnds = _PMs.conductor_ids(pm; nw=nw)
+
+    qsc = _PMs.var(pm, nw)[:qsc] = JuMP.@variable(pm.model,
+        [i in _PMs.ids(pm, nw, :storage)], base_name="$(nw)_qsc",
+        start = _PMs.comp_start_value(_PMs.ref(pm, nw, :storage, i), "qsc_start")
+    )
+
+    if bounded
+        inj_lbs = Dict()
+        inj_ubs = Dict()
+
+        for c in cnds
+            inj_lb_c, inj_ub_c = _PMs.ref_calc_storage_injection_bounds(_PMs.ref(pm, nw, :storage), _PMs.ref(pm, nw, :bus), c)
+            inj_lbs[c] = inj_lb_c
+            inj_ubs[c] = inj_ub_c
+        end
+
+        for (i,storage) in _PMs.ref(pm, nw, :storage)
+            inj_lb = sum(inj_lbs[c][i] for c in cnds)
+            inj_ub = sum(inj_ubs[c][i] for c in cnds)
+
+            qmin = sum(get(storage, "qmin", -Inf))
+            qmax = sum(get(storage, "qmax",  Inf))
+
+            if !isinf(inj_lb) || !isinf(qmin)
+                JuMP.set_lower_bound(qsc[i], max(inj_lb, qmin))
+            end
+            if !isinf(inj_ub) || !isinf(qmax)
+                JuMP.set_upper_bound(qsc[i], min(inj_ub, qmax))
+            end
+        end
+    end
+
+    report && InfrastructureModels.sol_component_value(pm, nw, :storage, :qsc, _PMs.ids(pm, nw, :storage), qsc)
+end
 
 
 "generates variables for both `active` and `reactive` slack at each bus"

@@ -376,7 +376,7 @@ end
 function constraint_mc_storage_loss(pm::_PMs.AbstractPowerModel, i::Int; nw::Int=pm.cnw, kwargs...)
     storage = _PMs.ref(pm, nw, :storage, i)
 
-    _PMs.constraint_storage_loss(pm, nw, i, storage["storage_bus"], storage["r"], storage["x"], storage["p_loss"], storage["q_loss"];
+    _PMs.constraint_storage_losses(pm, nw, i, storage["storage_bus"], storage["r"], storage["x"], storage["p_loss"], storage["q_loss"];
         conductors = _PMs.conductor_ids(pm, nw)
     )
 end
